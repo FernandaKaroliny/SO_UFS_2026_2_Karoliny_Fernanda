@@ -90,7 +90,53 @@ Para ler e exibir a tabela de resultados gerada diretamente no terminal, utilize
 cat strace-resumo.txt
 ```
 
+### 7. Experimentos de Desempenho e Coleta de Métricas
+Para obter dados brutos precisos em nanossegundos (necessários para o cálculo de latência e vazão) e isolar o motor de inferência de possíveis instabilidades da interface web, a coleta de dados foi realizada diretamente através da API REST nativa do Ollama via linha de comando (`curl`).
 
+Para reproduzir os experimentos, é recomendado o uso de **dois terminais** abertos lado a lado:
+*   **Terminal 1:** Para o envio da carga de trabalho (requisições).
+*   **Terminal 2:** Para o monitoramento em tempo real do uso de CPU e RAM, utilizando o comando:
 
+    ```bash
+    docker stats open-webui
+    ```
+
+#### Configuração 1: Execução Padrão (Baseline)
+Para medir o desempenho em cenário ideal (uma requisição por vez), envie um prompt configurando a saída sem streaming para obter o JSON consolidado no final:
+```bash
+docker exec -it open-webui curl -s -X POST http://localhost:11434/api/generate -d '{
+  "model": "<NOME_DO_MODELO>",
+  "prompt": "<SEU_PROMPT_CURTO_OU_LONGO_AQUI>",
+  "stream": false
+}'
+```
+#### Configuração 2: Concorrência (Carga Controlada)
+Para testar o comportamento do escalonador do Kernel sob estresse, enviamos duas requisições idênticas simultaneamente para o segundo plano (&), salvando as saídas em arquivos distintos e utilizando o wait para sincronizar a conclusão:
+
+```bash
+docker exec open-webui curl -s -X POST http://localhost:11434/api/generate -d '{"model": "<NOME_DO_MODELO>", "prompt": "<PROMPT_1>", "stream": false}' > res_concorrente_1.json & \
+docker exec open-webui curl -s -X POST http://localhost:11434/api/generate -d '{"model": "<NOME_DO_MODELO>", "prompt": "<PROMPT_2>", "stream": false}' > res_concorrente_2.json & \
+wait
+echo "Requisições concorrentes concluídas!"
+```
+
+Para ler e exibir a tabela de resultados gerada diretamente no terminal, utilize o comando:
+```bash
+cat res_concorrente_1.json
+cat res_concorrente_2.json
+```
+#### Configuração 3: Ajuste de Execução Local (Restrição de Threads)
+Para avaliar o impacto do paralelismo, limitamos artificialmente o motor de inferência a utilizar apenas 2 threads, simulando um ambiente com restrição de hardware:
+
+```bash
+docker exec -it open-webui curl -s -X POST http://localhost:11434/api/generate -d '{
+  "model": "<NOME_DO_MODELO>",
+  "prompt": "<SEU_PROMPT_AQUI>",
+  "stream": false,
+  "options": {
+    "num_thread": 2
+  }
+}'
+```
 
 
