@@ -45,6 +45,7 @@ Com o contêiner em execução, baixe o modelo Phi-3.5 para o motor interno do O
 ```bash
 time docker exec -it open-webui ollama pull phi3.5:3.8b-mini-instruct-q4_0
 ```
+Link do Modelo utilizado: https://huggingface.co/microsoft/Phi-3.5-mini-instruct
 
 ### 4. Comandos de Inventário do Ambiente
 Para extrair as informações de hardware e software que constam na especificação do ambiente, os seguintes comandos foram utilizados:
